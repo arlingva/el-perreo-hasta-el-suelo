@@ -20,6 +20,7 @@ clean_text <- function(text){
   return(text)
 }
 
+
 ###-----------------------------------------------
 library(corpus)
 tokenize_text <- function(text, stemming = FALSE, 
@@ -47,11 +48,11 @@ procesamiento <- function(df, stemming = FALSE,
     clean_text()
 
   ## Número de palabras únicas previo a eliminar stopwords.
-  num.palabras.rep <- c()
+  num.token0 <- c()
   for(i in 1:n){
     str_split(clean.letra, " ")[[i]] %>%
       unique() %>%
-      length() -> num.palabras.rep[i]
+      length() -> num.token0[i]
   }
 
   ## Limpieza de datos
@@ -61,16 +62,15 @@ procesamiento <- function(df, stemming = FALSE,
   
   #for(i in 1:n){clean.letra.v1[[i]] <- tokenize_text(clean.letra[1])}
   clean.letra.v1 <- lapply(clean.letra, tokenize_text,
-                           stemming, 
-                           exclude_stopwords, nmin = 1)
-  #tokenize_text()
+                           stemming, exclude_stopwords, nmin)
+
   ## Número de palabras únicas después de eliminar stopwords.
   
-  num.palabras.v1 <- c()
+  num.token <- c()
   for(i in 1:n){
     clean.letra.v1[[i]] %>% 
       unique() %>% 
-      length() -> num.palabras.v1[i]
+      length() -> num.token[i]
   }
 
   ## Lista de palabras
@@ -85,9 +85,8 @@ procesamiento <- function(df, stemming = FALSE,
     arrange(desc(freq)) %>%
     filter(!is.na(word))
   
-  df <- cbind(df, num.palabras.rep, num.palabras.v1)
+  df <- cbind(df, num.token0, num.token)
 
   return(list(df, clean.letra.df))  
 }
-
 

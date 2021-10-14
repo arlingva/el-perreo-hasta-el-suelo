@@ -1,0 +1,131 @@
+---
+title: "Del perreo hasta el suelo y otros géneros"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: columns
+    social: menu
+    source_code: embed
+---
+
+```{r, message = FALSE, echo= FALSE}
+library(dplyr)
+#library(magrittr)
+#library(readr)
+library(readxl)
+#library(tidyr)
+library(stringr)
+library(janitor)
+library(wordcloud)
+library(RColorBrewer)
+library(wordcloud2)
+library(tm)
+rm(list = ls())
+
+`%notin%` = function(x,y) !(x %in% y)
+source("funciones.R")
+```
+
+```{r, message = FALSE, echo= FALSE}
+library(stopwords)
+stopwords <- c(stopwords("es"), stopwords("en"))
+
+stopwords <- c(stopwords, chartr("áéíóú", "aeiou", stopwords)) %>%
+  unique()
+```
+
+geom_point
+=======================================================================
+
+```{r pressure, echo=FALSE, fig.cap="De aquí surge la idea", out.width = "40%" }
+knitr::include_graphics("images/antecedente.jpeg")
+```
+
+***
+
+#### ¿La polaridad de sentimientos en twitter se ha visto afectada por el número de casos confirmados de COVID-19?
+
+El objetivo de este _storyboard_ es responder esa pregunta respecto a tres usuarios de twitter:
+
+- Andres Manuel Lopez Obrador (@lopezobrador_)
+
+
+Reguetón
+=======================================================================
+
+
+```{r message=FALSE, warning=FALSE, echo=FALSE}
+df.regueton <- read_excel("data/proyecto canciones.xlsx") %>%
+  clean_names() %>%
+  filter(genero == "reguetón")
+
+regueton <- procesamiento(df.regueton, stemming = FALSE,
+                          exclude_stopwords = TRUE, nmin = 1)
+
+df.processed.regueton <- regueton[[1]]
+df.freq.regueton <- regueton[[2]]
+```
+
+  
+Column
+-------------------------------------
+    
+### Chart 1
+    
+```{r}
+set.seed(1234) # for reproducibility 
+wordcloud(words = df.freq.regueton$word, freq = df.freq.regueton$freq, 
+          min.freq = 1, max.words=200, random.order=FALSE, 
+          rot.per=0.35,        
+          colors=brewer.pal(8, "Dark2"))
+```
+   
+Column
+-------------------------------------
+    
+### Chart 2
+    
+```{r}
+layout(mat = matrix(c(1,2),2,1, byrow=TRUE),  height = c(1,8))
+x <- df.processed.regueton$num.token
+lim <- c(0, 300)
+
+# Draw the boxplot and the histogram 
+par(mar=c(0, 3.1, 1.1, 2.1))
+boxplot(x, horizontal=TRUE, 
+        ylim = lim, xaxt = "n" , col = "cadetblue3", 
+        frame = F)
+par(mar=c(4, 3.1, 1.1, 2.1))
+hist(x, col = "cadetblue3", border = F, nbreaks = 10, 
+     main="" , xlab = "# Token", xlim = lim)
+```
+    
+### Chart 3
+
+```{r}
+df.processed.regueton %>%
+  select(num.token) %>%
+  summary()
+```
+
+```{r}
+df.processed.regueton %>%
+  select(cancion, num.token) %>%
+  arrange(desc(num.token)) %>%
+  head(5)
+```
+
+```{r}
+df.processed.regueton %>%
+  select(cancion, num.token) %>%
+  arrange(desc(num.token)) %>%
+  tail(5)
+```
+
+
+=======================================================================
+Corridos alterados
+
+```{r, message = FALSE, echo = FALSE}
+print("hola2")
+```
+

@@ -14,6 +14,10 @@ library(readxl)
 library(tidyr)
 library(stringr)
 library(janitor)
+library(wordcloud)
+library(RColorBrewer)
+library(wordcloud2)
+library(tm)
 rm(list = ls())
 
 `%notin%` = function(x,y) !(x %in% y)
@@ -30,92 +34,70 @@ stopwords <- c(stopwords, chartr("áéíóú", "aeiou", stopwords)) %>%
 length(stopwords)
 ```
 
-
-```{r}
-library(wordcloud)
-library(RColorBrewer)
-library(wordcloud2)
-library(tm)
-```
-
 ## Lectura de datos y funciones
 
 ```{r}
-proyecto_canciones <- read_excel("data/proyecto canciones.xlsx") %>%
+df.regueton <- read_excel("data/proyecto canciones.xlsx") %>%
   clean_names()
 
-n <- proyecto_canciones$id %>%
-  length()
-
-proyecto_canciones %>%
-  head()
+df.regueton %>% head()
 ```
 
-## Antes de eliminar stopwords
+Cantidad de letras analizadas
 
 ```{r}
-clean.letra <- proyecto_canciones$letra %>%
-  clean_text()
+df.regueton$id %>% length()
 ```
 
-Número de palabras únicas previo a eliminar stopwords.
+Procesamiento de datos
 
 ```{r}
-num.palabras.rep <- c()
-for(i in 1:n){
-  str_split(clean.letra, " ")[[i]] %>%
-  unique() %>%
-  length() -> num.palabras.rep[i]
-}
+regueton <- procesamiento(df.regueton, stemming = FALSE,
+                          exclude_stopwords = TRUE, nmin = 1)
+
+df.processed.regueton <- regueton[[1]]
+df.freq.regueton <- regueton[[2]]
 ```
 
-## Limpieza de datos
-
-### Limpieza de datos sin stemming, excluyendo stopwords.
+## Cantidad de token por letra
 
 ```{r}
-clean.letra.v1 <- lapply(clean.letra, tokenize_text, 
-                         stemming = FALSE, 
-                         exclude_stopwords = TRUE, nmin = 1)
+df.processed.regueton %>%
+  select(num.token) %>%
+  summary()
 ```
-
-Número de palabras únicas después de eliminar stopwords.
-
 ```{r}
-num.palabras.v1 <- c()
-for(i in 1:n){
-  clean.letra.v1[[i]] %>% 
-    unique() %>% 
-    length() -> num.palabras.v1[i]
-}
+df.processed.regueton %>%
+  select(cancion, num.token) %>%
+  arrange(desc(num.token)) %>%
+  head(5)
 ```
 
 ```{r}
-clean.letra.df <- unlist(clean.letra.v1) %>%
-  as.data.frame()
-
-colnames(clean.letra.df) <- "word"
-
-clean.letra.df <- clean.letra.df %>%
-  group_by(word) %>%
-  summarise(freq = n()) %>%
-  arrange(desc(freq)) %>%
-  filter(!is.na(word))
-```
-
-
-## 
-```{r, eval=FALSE}
-prueba <- procesamiento(proyecto_canciones, stemming = FALSE, 
-                          exclude_stopwords = TRUE, nmin = 2)
-
-clean.letra.df <- prueba[[1]]
-clean.letra.df <- prueba[[2]]
+df.processed.regueton %>%
+  select(cancion, num.token) %>%
+  arrange(desc(num.token)) %>%
+  tail(5)
 ```
 
 ```{r}
-#set.seed(1234) # for reproducibility 
-wordcloud(words = clean.letra.df$word, freq = clean.letra.df$freq, 
+layout(mat = matrix(c(1,2),2,1, byrow=TRUE),  height = c(1,8))
+x <- df.processed.regueton$num.token
+lim <- c(0, 300)
+
+# Draw the boxplot and the histogram 
+par(mar=c(0, 3.1, 1.1, 2.1))
+boxplot(x, horizontal=TRUE, 
+        ylim = lim, xaxt = "n" , col = "cadetblue3", 
+        frame = F)
+par(mar=c(4, 3.1, 1.1, 2.1))
+hist(x, col = "cadetblue3", border = F, nbreaks = 10, 
+     main="" , xlab = "# Token", xlim = lim)
+```
+
+```{r}
+set.seed(1234) # for reproducibility 
+wordcloud(words = df.freq.regueton$word, freq = df.freq.regueton$freq, 
           min.freq = 1, max.words=200, random.order=FALSE, 
           rot.per=0.35,        
           colors=brewer.pal(8, "Dark2"))
