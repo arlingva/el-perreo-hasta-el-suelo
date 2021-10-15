@@ -46,13 +46,13 @@ df.regueton %>% head()
 Cantidad de letras analizadas
 
 ```{r}
-df.regueton$id %>% length()
+df.regueton$letra %>% length()
 ```
 
 Procesamiento de datos
 
 ```{r}
-regueton <- procesamiento(df.regueton, stemming = FALSE,
+regueton <- procesamiento(df.regueton, "reguetón", stemming = FALSE,
                           exclude_stopwords = TRUE, nmin = 1)
 
 df.processed.regueton <- regueton[[1]]
@@ -66,6 +66,7 @@ df.processed.regueton %>%
   select(num.token) %>%
   summary()
 ```
+
 ```{r}
 df.processed.regueton %>%
   select(cancion, num.token) %>%

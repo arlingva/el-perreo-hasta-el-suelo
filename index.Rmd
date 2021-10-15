@@ -9,8 +9,8 @@ output:
 
 ```{r, message = FALSE, echo= FALSE}
 library(dplyr)
-#library(magrittr)
-#library(readr)
+library(ggplot2)
+library(kableExtra)
 library(readxl)
 #library(tidyr)
 library(stringr)
@@ -19,6 +19,9 @@ library(wordcloud)
 library(RColorBrewer)
 library(wordcloud2)
 library(tm)
+library(tidyverse)
+library(hrbrthemes)
+library(viridis)
 rm(list = ls())
 
 `%notin%` = function(x,y) !(x %in% y)
@@ -33,37 +36,92 @@ stopwords <- c(stopwords, chartr("áéíóú", "aeiou", stopwords)) %>%
   unique()
 ```
 
-geom_point
-=======================================================================
+```{r message=FALSE, warning=FALSE, echo=FALSE}
+df <- read_excel("data/proyecto canciones.xlsx") %>%
+  clean_names() 
 
-```{r pressure, echo=FALSE, fig.cap="De aquí surge la idea", out.width = "40%" }
-knitr::include_graphics("images/antecedente.jpeg")
+df.split <- split(df, df$genero)
+n <- length(df.split)
+
+list.processed <- list()
+list.freq <- list()
+
+vecgeneros <- c()
 ```
 
-***
 
-#### ¿La polaridad de sentimientos en twitter se ha visto afectada por el número de casos confirmados de COVID-19?
+```{r message=FALSE, warning=FALSE, echo=FALSE}
+for(i in 1:n){
+  df.temp <- df.split[[i]]
+  genero <- df.split[[i]]$genero %>% unique()
+  resultado <- procesamiento(df.temp, genero, stemming = FALSE,
+                          exclude_stopwords = TRUE, nmin = 1)
+  vecgeneros[i] <- genero
+  list.processed[[i]] <- resultado[[1]]
+  list.freq[[i]] <- resultado[[2]]
+}
+```
 
-El objetivo de este _storyboard_ es responder esa pregunta respecto a tres usuarios de twitter:
+```{r message=FALSE, warning=FALSE, echo=FALSE}
+df.processed <- list.processed[[1]]
+df.freq <- list.freq[[1]]
 
-- Andres Manuel Lopez Obrador (@lopezobrador_)
+for(i in 2:n){
+  df.processed <- rbind(df.processed, list.processed[[i]])
+  df.freq <- rbind(df.freq, list.freq[[i]])
+}
+```
+
+
+
+
+
+
+
+Intro
+=======================================================================
+
+```{r pressure, echo=FALSE, fig.cap=""}
+#knitr::include_graphics("images/antecedente.jpeg")
+```
+
+
+
+Resumen
+=======================================================================
+
+```{r}
+value <- df.processed$num.token
+name <- df.processed$genero
+# Plot
+df.processed %>%
+  ggplot(aes(x=genero, y=num.token, fill=genero)) +
+    geom_boxplot() +
+    scale_fill_viridis(discrete = TRUE, alpha=0.6) +
+    geom_jitter(color="black", size=0.4, alpha=0.9) +
+    theme_ipsum() +
+    theme(
+      legend.position="none",
+      plot.title = element_text(size=11)
+    ) +
+    ggtitle("Cantidad de token por género") +
+    xlab("")
+```
+
+
+
+
+
+```{r, eval = FALSE}
+
+```
 
 
 Reguetón
 =======================================================================
 
 
-```{r message=FALSE, warning=FALSE, echo=FALSE}
-df.regueton <- read_excel("data/proyecto canciones.xlsx") %>%
-  clean_names() %>%
-  filter(genero == "reguetón")
 
-regueton <- procesamiento(df.regueton, stemming = FALSE,
-                          exclude_stopwords = TRUE, nmin = 1)
-
-df.processed.regueton <- regueton[[1]]
-df.freq.regueton <- regueton[[2]]
-```
 
   
 Column
@@ -73,7 +131,12 @@ Column
     
 ```{r}
 set.seed(1234) # for reproducibility 
-wordcloud(words = df.freq.regueton$word, freq = df.freq.regueton$freq, 
+valor.genero <- "reguetón"
+media <- df.processed$num.token[df.processed$genero == valor.genero] %>%
+  mean()
+paste("Promedio de token:", round(media, 2))
+wordcloud(words = df.freq$word[df.freq$genero == valor.genero], 
+          freq = df.freq$freq[df.freq$genero == valor.genero], 
           min.freq = 1, max.words=200, random.order=FALSE, 
           rot.per=0.35,        
           colors=brewer.pal(8, "Dark2"))
@@ -82,50 +145,35 @@ wordcloud(words = df.freq.regueton$word, freq = df.freq.regueton$freq,
 Column
 -------------------------------------
     
-### Chart 2
-    
-```{r}
-layout(mat = matrix(c(1,2),2,1, byrow=TRUE),  height = c(1,8))
-x <- df.processed.regueton$num.token
-lim <- c(0, 300)
-
-# Draw the boxplot and the histogram 
-par(mar=c(0, 3.1, 1.1, 2.1))
-boxplot(x, horizontal=TRUE, 
-        ylim = lim, xaxt = "n" , col = "cadetblue3", 
-        frame = F)
-par(mar=c(4, 3.1, 1.1, 2.1))
-hist(x, col = "cadetblue3", border = F, nbreaks = 10, 
-     main="" , xlab = "# Token", xlim = lim)
-```
-    
-### Chart 3
+### Temas con mayor cantidad de token
 
 ```{r}
-df.processed.regueton %>%
-  select(num.token) %>%
-  summary()
-```
-
-```{r}
-df.processed.regueton %>%
-  select(cancion, num.token) %>%
-  arrange(desc(num.token)) %>%
-  head(5)
-```
-
-```{r}
-df.processed.regueton %>%
-  select(cancion, num.token) %>%
-  arrange(desc(num.token)) %>%
-  tail(5)
+df.processed %>%
+  top.token("reguetón", 5) %>%
+  ggbarplot()
 ```
 
 
+### Temas con menor cantidad de token
+
+```{r}
+df.processed %>%
+  tail.token("reguetón", 5) %>%
+  ggbarplot()
+```
+
+
+Trova
 =======================================================================
-Corridos alterados
 
 ```{r, message = FALSE, echo = FALSE}
 print("hola2")
 ```
 
+
+Corridos alterados... Próximamente
+=======================================================================
+
+```{r, message = FALSE, echo = FALSE}
+print("hola2")
+```

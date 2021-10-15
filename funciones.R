@@ -21,6 +21,7 @@ clean_text <- function(text){
 }
 
 
+
 ###-----------------------------------------------
 library(corpus)
 tokenize_text <- function(text, stemming = FALSE, 
@@ -37,10 +38,12 @@ tokenize_text <- function(text, stemming = FALSE,
   return(text)
 }
 
-#df <- proyecto_canciones
-procesamiento <- function(df, stemming = FALSE, 
+
+###-----------------------------------------------
+#df <- df.regueton
+procesamiento <- function(df, genero, stemming = FALSE, 
                           exclude_stopwords = TRUE, nmin = 1){
-  n <- df$id %>%
+  n <- df$letra %>%
     length()
 
   # Limpieza del texto
@@ -83,10 +86,119 @@ procesamiento <- function(df, stemming = FALSE,
     group_by(word) %>%
     summarise(freq = n()) %>%
     arrange(desc(freq)) %>%
-    filter(!is.na(word))
+    filter(!is.na(word)) %>%
+    mutate(genero = genero)
   
   df <- cbind(df, num.token0, num.token)
 
   return(list(df, clean.letra.df))  
 }
+
+###-----------------------------------------------
+procesamiento2 <- function(df, genero, stemming = FALSE, 
+                          exclude_stopwords = TRUE, nmin = 1){
+  n <- df$letra %>%
+    length()
+  
+  # Limpieza del texto
+  clean.letra <- df$letra %>%
+    clean_text()
+  
+  ## Número de palabras únicas previo a eliminar stopwords.
+  num.token0 <- c()
+  for(i in 1:n){
+    str_split(clean.letra, " ")[[i]] %>%
+      unique() %>%
+      length() -> num.token0[i]
+  }
+  
+  ## Limpieza de datos
+  ### Limpieza de datos sin stemming, excluyendo stopwords.
+  
+  clean.letra.v1 <- list()
+  
+  #for(i in 1:n){clean.letra.v1[[i]] <- tokenize_text(clean.letra[1])}
+  clean.letra.v1 <- lapply(clean.letra, tokenize_text,
+                           stemming, exclude_stopwords, nmin)
+  
+  ## Número de palabras únicas después de eliminar stopwords.
+  
+  num.token <- c()
+  for(i in 1:n){
+    clean.letra.v1[[i]] %>% 
+      unique() %>% 
+      length() -> num.token[i]
+  }
+  
+  ## Lista de palabras
+  clean.letra.df <- unlist(clean.letra.v1) %>%
+    as.data.frame()
+  
+  colnames(clean.letra.df) <- "word"
+  
+  clean.letra.df <- clean.letra.df %>%
+    group_by(word) %>%
+    summarise(freq = n()) %>%
+    arrange(desc(freq)) %>%
+    filter(!is.na(word)) %>%
+    mutate(genero = genero)
+  
+  df <- cbind(df, num.token0, num.token)
+  
+  return(list(df, clean.letra.df))  
+}
+
+
+
+###-----------------------------------------------
+
+top.token <- function(df, genero, n){
+  df %>%
+    filter(genero == genero) %>%
+    select(cancion, num.token) %>%
+    arrange(desc(num.token)) %>%
+    head(n)
+}
+
+tail.token <- function(df, genero, n){
+  df %>%
+    select(cancion, num.token) %>%
+    arrange(num.token) %>%
+    head(n)
+}
+
+###-----------------------------------------------
+library(plotly)
+barplotly <- function(df, genero, n){
+  #df <- df(df, genero, n) %>% tail.token()
+  x <- df$cancion
+  y <- df$num.token
+  text <- df$cancion
+  data <- data.frame(x=reorder(df$cancion, -df$num.token), y, text)
+  
+  #ggplot(data,aes(x= reorder(cat,-num),num))+geom_bar(stat ="identity")
+  
+  fig <- plot_ly(data, x = ~x, y = ~y, type = 'bar', text = y,
+                 marker = list(color = 'rgb(158,202,225)',
+                               line = list(color = 'rgb(8,48,107)',
+                                           width = 1.5)))
+ 
+  
+  fig
+}
+
+###-----------------------------------------------
+library(forcats)
+
+ggbarplot <- function(df){
+  df %>%
+    mutate(cancion = fct_reorder(cancion, num.token)) %>%
+    ggplot(aes(x=cancion, y=num.token)) +
+    geom_bar(stat="identity", fill="#f68060", alpha=.6, width=.4) +
+    coord_flip() +
+    xlab("") +
+    theme_bw()
+}
+
+# Reorder following the value of another column:
 
